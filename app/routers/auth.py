@@ -5,7 +5,7 @@ from ..database import get_db
 from .. import models, utils, oauth2, schemas
 
 router = APIRouter(
-    prefix='/login'
+    prefix='/login',
     tags=['Authentication'])
 
 @router.post("/", response_model=schemas.Token)
