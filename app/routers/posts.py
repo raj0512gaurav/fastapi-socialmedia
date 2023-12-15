@@ -80,7 +80,7 @@ def delete_post(id: int, db: Session = Depends(get_db), current_user: int = Depe
 
 #Update a Post
 @router.put("/{id}", response_model=schemas.Post)
-def update_post(id:int, post:schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+def update_post(id:int, post:schemas.PostUpdate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     # cursor.execute("""UPDATE posts
     #                SET title=%s, content=%s, location=%s, published=%s
     #                WHERE id=%s RETURNING * """,
@@ -89,17 +89,20 @@ def update_post(id:int, post:schemas.PostCreate, db: Session = Depends(get_db), 
     # conn.commit()
 
     post_query = db.query(models.Post).filter(models.Post.id == id)
-    updated_post = post_query.first()
+    existing_post = post_query.first()
 
-    if updated_post == None:
+    if existing_post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Post with id {id} not found")
 
-    if updated_post.owner_id != current_user.id:
+    if existing_post.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Not authorised to perform the requested action")
     
-    post_query.update(post.dict(), synchronize_session=False)
+    # Convert Pydantic model to dictionary with exclude_unset=True
+    update_data = post.dict(exclude_unset=True)  # Exclude fields not set in the request
+    
+    post_query.update(update_data, synchronize_session=False)
     db.commit()
 
     return post_query.first()
